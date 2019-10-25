@@ -156,9 +156,9 @@ start knn(xy,k);
 	do i=1 to n;
 		d_k = d[,i] || xy[,3];
 		call sort(d_k,{1});
-		* d_k = d_k[2:k,];
+		d_k = d_k[2:k,];
 		* remove values with distance=0;
-		d_k = d_k[loc(d_k),];
+		* d_k = d_k[loc(d_k),];
 		w = 1/d_k[,1];
 		class = sum(w#d_k[,2])/sum(w);
 		*print class w d_k;
@@ -172,7 +172,6 @@ finish knn;
 * ____________________ model KNN: NO train test split ____________________;
 
 
-t = knn(xy,3);
 
 start sampler(xy,n);
 	in = sample(1:n, n, 'replace')`;
@@ -184,7 +183,7 @@ finish sampler;
 do i=1 to 1000;
 	xy_sample = sampler(xy,n);
 	count_r2 = knn(xy_sample,k);
-	total_accuracy = total_accuracy // accuracy;
+	total_accuracy = total_accuracy // count_r2;
 end;
 
 print total_accuracy;
