@@ -139,13 +139,7 @@ title2 "train on all data";
 proc iml;
 use q2; read all into xy; 
 n=nrow(xy);
-K=3;
-x = {1,2,0,1,3,0,34,0,6};
-print x;
-
-t = x[loc(x),];
-print t x;
-
+K=2;
 
 
 * ____________________ model KNN: NO train test split ____________________;
@@ -156,9 +150,9 @@ start knn(xy,k);
 	do i=1 to n;
 		d_k = d[,i] || xy[,3];
 		call sort(d_k,{1});
-		* d_k = d_k[2:k,];
+		d_k = d_k[2:k,];
 		* remove values with distance=0;
-		d_k = d_k[loc(d_k),];
+		* d_k = d_k[loc(d_k),];
 		w = 1/d_k[,1];
 		class = sum(w#d_k[,2])/sum(w);
 		*print class w d_k;
@@ -172,7 +166,6 @@ finish knn;
 * ____________________ model KNN: NO train test split ____________________;
 
 
-t = knn(xy,3);
 
 start sampler(xy,n);
 	in = sample(1:n, n, 'replace')`;
@@ -181,30 +174,18 @@ start sampler(xy,n);
 finish sampler;
 	
 	
-do i=1 to 1000;
+do i=1 to 100;
 	xy_sample = sampler(xy,n);
 	count_r2 = knn(xy_sample,k);
-	total_accuracy = total_accuracy // accuracy;
+	total_accuracy = total_accuracy // count_r2;
 end;
-
-print total_accuracy;
-
 	
 create count_r2 from total_accuracy[colname={'acc'}];
 append from total_accuracy;
-
-
-/* res1 = xy || res || (res[,1]=res[,2]) ;
-nm = {"x1" "x2"  "y" "y2" "yh" "corr"} ;
-
-create res_p from res1[colname=nm] ;
-append from res1 ;*/
-
-
 quit;
 
 
-proc print data=count_r2;
+proc means data=count_r2;
 
 
 proc sgplot data=count_r2;
