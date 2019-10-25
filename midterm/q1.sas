@@ -13,9 +13,12 @@ symbol2 i=join color=green;
 symbol3 i=join color=purple;
 
 
-proc gplot data=a ;
+/* proc gplot data=a ;
 plot (p1)*t /overlay;
-run ;
+run ; */
+proc sgplot data=a;
+	scatter y=p1 x=t;
+run;
 quit ;
 
 proc iml ;
@@ -71,7 +74,14 @@ proc sort data=pdat ;
 run ;
 
 
-proc gplot data=pdat ;
+/* proc gplot data=pdat ;
 plot (p pti ) * t / overlay;
-run ;
+run ; */
+proc sgplot data=a;
+	scatter y=p x=t;
+	scatter y=pti x=t;
+	
+
+
+
 quit ;
