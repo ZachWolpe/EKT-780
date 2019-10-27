@@ -1,5 +1,5 @@
 
-data xy_data;
+data xy_data; 
 input x y;
 datalines;
 10 44
@@ -37,10 +37,14 @@ run;
 
 options ls=72 nocenter ;
 
-proc plot data=xy;
+/* proc plot data=xy;
 	plot y*x;
 run;
+*/
 
+proc sgplot data=xy_data;
+	scatter y=y x=x;
+run;
 
 
 proc iml;
@@ -105,8 +109,13 @@ symbol2 interpol=none
 		
 
 
-proc gplot data=npres;
+/* proc gplot data=npres;
 	plot (y yh)*x / overlay;
+run;
+*/
+proc sgplot data=npres;
+	scatter y=y x=x;
+	series y=yh x=x;
 run;
 
 quit;
