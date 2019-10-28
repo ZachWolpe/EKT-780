@@ -209,3 +209,243 @@ run;
 
 
 
+
+
+
+* ____________ ____________________ Question 3: Structural Breaks ____________________ ____________;
+
+data cdata;
+set '/folders/myfolders/sasuser.v94/EKT 720/Assignment 6/cdata.sas7bdat';
+run;
+proc print data=cdata (obs=10);
+run;	
+
+
+proc sgplot data=cdata;
+	scatter x=x y=y;
+	title 'Structural Break Data';
+run;
+
+
+
+
+
+
+proc iml;
+use cdata; read all into xy;
+x_orig = xy[,1]; y_orig = xy[,2];
+
+
+
+start regression;
+	b = inv(x`*x)*x`*y;
+	yh = x*b; yb = mean(y);
+	err = y-yh;
+	ssr = (yh-yb)`*(yh-yb);
+	sse = (y-yh)`*(y-yh);
+	sst	= (y-yb)`*(y-yb);
+	r2 = ssr/sst;
+finish regression;
+
+
+start structural_break;
+	y = y;
+	n = nrow(y);
+	x = J(n,1,1) || x ||
+		((x-x1)#((x-x1)>0)) || ((x-x2)#((x-x2)>0));
+	call regression;
+finish structural_break;
+
+
+x1=177; x2=255;
+
+* _______ fit original model _______;
+x=x_orig; y=y_orig;
+call structural_break;
+e = err; 
+yh_true = yh;
+
+vis = xy || yh;
+create vis from vis[colname={'x' 'y' 'yh'}]; append from vis;
+
+
+* _______ get results _______;
+do i=1 to 1000;
+	y = yh + sample(e, nrow(e), 'replace')`;
+	x = x_orig;
+	call structural_break;
+	res = res // (r2 || b`);
+end;
+
+
+
+* calculate confidence intervals - will not work in loop?;
+call sort(res, {1});
+res = res || J(nrow(res),1,res[nrow(res)*0.025,1]) || J(nrow(res),1,res[nrow(res)*0.975,1]);
+
+call sort(res, {2});
+res = res || J(nrow(res),1,res[nrow(res)*0.025,2]) || J(nrow(res),1,res[nrow(res)*0.975,2]);
+
+call sort(res, {3});
+res = res || J(nrow(res),1,res[nrow(res)*0.025,3]) || J(nrow(res),1,res[nrow(res)*0.975,3]);
+
+call sort(res, {4});
+res = res || J(nrow(res),1,res[nrow(res)*0.025,4]) || J(nrow(res),1,res[nrow(res)*0.975,4]);
+
+call sort(res, {5});
+res = res || J(nrow(res),1,res[nrow(res)*0.025,5]) || J(nrow(res),1,res[nrow(res)*0.975,5]);
+
+
+
+
+create res from res[colname=
+	{'r2' 'b0' 'b1' 'b2' 'b3' 'lcl_r' 'ucl_r' 'lcl_0' 'ucl_0' 'lcl_1' 'ucl_1' 'lcl_2' 'ucl_2' 'lcl_3' 'ucl_3'}];
+append from res;
+quit; 
+
+proc sgplot data=vis;
+	scatter y=y x=x;
+	scatter y=yh x=x;
+	title 'Fitted Values: Peicewise Regression';
+run;
+
+
+
+proc sgplot data=res;
+	histogram r2;
+	refline lcl_r / axis=x lineattrs=(color=blue);
+	refline ucl_r / axis=x lineattrs=(color=blue);
+	title 'Bootstrap Residuals: R2';
+run;
+
+proc sgplot data=res;
+	histogram b0;
+	refline lcl_0 / axis=x lineattrs=(color=orange);
+	refline ucl_0 / axis=x lineattrs=(color=orange);
+	title 'Bootstrap Residuals: Beta 0';
+run;
+
+proc sgplot data=res;
+	histogram b1;
+	refline lcl_1 / axis=x lineattrs=(color=red);
+	refline ucl_1 / axis=x lineattrs=(color=red);
+	title 'Bootstrap Residuals: Beta 1';
+run;
+
+proc sgplot data=res;
+	histogram b2;
+	refline lcl_2 / axis=x lineattrs=(color=red);
+	refline ucl_2 / axis=x lineattrs=(color=red);
+	title 'Bootstrap Residuals: Beta 2';
+run;
+
+proc sgplot data=res;
+	histogram b3;
+	refline lcl_3 / axis=x lineattrs=(color=green);
+	refline ucl_3 / axis=x lineattrs=(color=green);
+	title 'Bootstrap Residuals: Beta 3';
+run;
+
+
+	
+proc sgplot data=res;
+	scatter x=x y=y;
+	series y=yh x=x / lineattrs=(color=blue thickness=2);
+	series y=lcl x=x / lineattrs=(color=red thickness=0.25);
+	series y=ucl x=x / lineattrs=(color=red thickness=0.25);
+title 'Local Polynomial Regression';
+run;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+* ____________ ____________________ Question 4: Structural Breaks Observational Search ____________________ ____________;
+
+data cdata;
+set '/folders/myfolders/sasuser.v94/EKT 720/Assignment 6/cdata.sas7bdat';
+run;
+
+
+
+
+
+proc iml;
+use cdata; read all into xy;
+x_orig = xy[,1]; y_orig = xy[,2];
+x=x_orig; y=y_orig; n=nrow(xy);
+
+
+* _______ metric to evaluate fit: MSE _______;
+start mse;
+	* check for singularity;
+	if inv(x`*x) ^= 0 then do;
+		b = inv(x`*x)*x`*y;
+		yh = x*b;
+		mse = ((y-yh)`*(y-yh))/(nrow(x)-ncol(x));
+	end;
+finish mse;
+
+
+
+* _______ Model: define x _______;
+start structural_design;
+	x = J(n,1,1) || x_orig || 
+		(x_orig-x1)#((x_orig-x1)>0) || ((x_orig-x2)#((x_orig-x2)>0));
+finish structural_design;
+
+
+
+* _______ padding: mini obs above & below _______;
+p = 3;
+
+
+
+
+
+
+* _______ observational search _______;
+do i=p to n-2*p by 1;
+	do j=i+p to n-p by 1;
+		x1=x_orig[i]; x2=x_orig[j];
+		call structural_design;
+		call mse;
+		res = res // (mse || x1 || x2);
+	end;
+end;
+
+print res;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
