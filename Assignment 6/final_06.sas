@@ -387,18 +387,20 @@ run;
 
 proc iml;
 use cdata; read all into xy;
+
+*  _______ order the matrix dumbass! _______;
+call sort(xy, {1});
+
+
 x_orig = xy[,1]; y_orig = xy[,2];
 x=x_orig; y=y_orig; n=nrow(xy);
 
 
 * _______ metric to evaluate fit: MSE _______;
 start mse;
-	* check for singularity;
-	if inv(x`*x) ^= 0 then do;
-		b = inv(x`*x)*x`*y;
-		yh = x*b;
-		mse = ((y-yh)`*(y-yh))/(nrow(x)-ncol(x));
-	end;
+	b = inv(x`*x)*x`*y;
+	yh = x*b;
+	mse = ((y-yh)`*(y-yh))/(n-ncol(x));
 finish mse;
 
 
@@ -418,7 +420,6 @@ p = 3;
 
 
 
-
 * _______ observational search _______;
 do i=p to n-2*p by 1;
 	do j=i+p to n-p by 1;
@@ -429,9 +430,31 @@ do i=p to n-2*p by 1;
 	end;
 end;
 
-print res;
+
+res_in = res[>:<,1];
+
+print 'Optimal MSE X1 X2' (res[res_in,]);
 
 
+* fit best model;
+x1=res[res_in,2]; x2=res[res_in,3];
+call structural_design;
+call mse;
+
+res = xy || yh;
+
+
+create res from res[colname={'x' 'y' 'yh'}];
+append from res;
+quit;
+
+
+
+proc sgplot data=res;
+	scatter x=x y=y;
+	scatter x=x y=yh;
+	title " optimal structural breaks";
+run;
 
 
 
